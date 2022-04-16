@@ -1,0 +1,15 @@
+{
+  "name": "activitypub-serverless",
+  "description": "ActivityPub implementation using Netlify functions",
+  "author": "randName",
+  "license": "MIT",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
