@@ -7,11 +7,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "follow": "node -r dotenv/config scripts/follow.js",
     "dev": "netlify dev",
     "deploy": "netlify deploy",
     "ntl": "netlify"
   },
   "devDependencies": {
+    "dotenv": "^16.0.0",
     "netlify-cli": "^9.16.6"
   }
 }
