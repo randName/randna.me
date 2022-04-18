@@ -4,29 +4,7 @@
 [build]
   publish = "public/"
 
-[[redirects]]
-  from = "/.well-known/webfinger"
-  to = "/webfinger/:rs"
-  status = 200
-  query = { resource = ":rs" }
-
-[[redirects]]
-  from = "/a/*"
-  to = "https://github.com/randName/activitypub-log/commit/:splat"
-
-[[redirects]]
-  from = "/p/*"
-  to = "https://github.com/randName/activitypub-log/blob/omo/posts/:splat"
-
-[[redirects]]
-  from = "/activity/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/1910"
-  to = "https://www.youtube.com/playlist?list=PLWzc8EoGPqaWr6NFeRG2Pa0TCV3szEupt"
-
+# CORS
 [[headers]]
   for = "/*"
   [headers.values]
@@ -35,12 +13,55 @@
     Access-Control-Allow-Headers = "Origin,Content-Type,Accept,Host,Date,Digest,Signature"
     Access-Control-Allow-Credentials = "true"
 
+# misc redirects
+[[redirects]]
+  from = "/1910"
+  to = "https://www.youtube.com/playlist?list=PLWzc8EoGPqaWr6NFeRG2Pa0TCV3szEupt"
+
+###############
+# ActivityPub #
+###############
+
+# WebFinger
+[[redirects]]
+  from = "/.well-known/webfinger"
+  to = "/webfinger/:rs"
+  status = 200
+  query = { resource = ":rs" }
+
 [[headers]]
   for = "/.well-known/webfinger"
   [headers.values]
-    Content-Type = "application/json"
+    Content-Type = "application/jrd+json"
+
+# serverless endpoints
+[[redirects]]
+  from = "/ap/*"
+  to = "/.netlify/functions/ap-:splat"
+  status = 200
+
+# static endpoints
+[[headers]]
+  for = "/ap-static/*"
+  [headers.values]
+    Content-Type = "application/activity+json"
 
 [[headers]]
-  for = "/actor"
+  for = "/i"
+  [headers.values]
+    Content-Type = "application/activity+json"
+
+# activity ids (commit hashes)
+[[redirects]]
+  from = "/a/*"
+  to = "https://github.com/randName/activitypub-log/commit/:splat"
+
+# objects ids
+[[redirects]]
+  from = "/o/*"
+  to = "https://raw.githubusercontent.com/randName/activitypub-log/blob/omo/objects/:splat"
+
+[[headers]]
+  for = "/o/*"
   [headers.values]
     Content-Type = "application/activity+json"
