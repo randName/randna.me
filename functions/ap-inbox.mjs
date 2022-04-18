@@ -10,6 +10,7 @@ const actor = process.env.ACTOR_URL || `${domain}/i`
 const keyId = `${actor}#main-key`
 
 const gh = github(process.env.LOG_REPO, `Bearer ${process.env.GITHUB_TOKEN}`)
+const author = { name: 'ap-bot', email: 'ap@randna.me' }
 
 const privateKey = `-----BEGIN RSA PRIVATE KEY-----
 ${process.env.PRIVATE_KEY}
@@ -29,14 +30,23 @@ const formatJSON = (data) => `${tri}json
 ${JSON.stringify(data, null, 1)}
 ${tri}`
 
-const sendMessage = (text) => chat_id && tg && tg('sendMessage', {
-  text,
-  chat_id,
-  parse_mode: 'MarkdownV2',
-  disable_notification: true,
-})
+const sendMessage = async (text) => {
+  if (!chat_id || !tg) return
+  try {
+    await tg('sendMessage', {
+      text,
+      chat_id,
+      parse_mode: 'MarkdownV2',
+      disable_notification: true,
+    })
+  } catch (err) {
+    console.warn(`[tg] failed: ${err.message}`)
+  }
+}
 
 const send = (to, msg) => postMessage(to, { actor, ...msg }, privateKey, keyId)
+
+const isFollowMe = (obj) => obj.type === 'Follow' && obj.object === actor
 
 const update = async (path, message, updater) => {
   if (!gh) return
@@ -44,11 +54,11 @@ const update = async (path, message, updater) => {
   const { sha, content: old } = await gh(p)
   const updated = updater(Buffer.from(old, 'base64').toString())
   const content = Buffer.from(updated).toString('base64')
-  return await gh(p, 'PUT', JSON.stringify({ sha, message, content }))
+  return await gh(p, 'PUT', JSON.stringify({ sha, message, content, author }))
 }
 
 const handlePayload = async (payload, sender) => {
-  if (payload.type === 'Follow' && payload.object === actor) {
+  if (isFollowMe(payload)) {
     const message = `Accept Follow from ${sender.id}`
     const { commit } = await update('followers.tsv', message, (old) => {
       const lines = old.split('\n')
@@ -60,7 +70,7 @@ const handlePayload = async (payload, sender) => {
     console.log('Accept: ', id, resp)
     return
   } else if (payload.type === 'Undo') {
-    if (payload.object.type === 'Follow' && payload.object.object === actor) {
+    if (isFollowMe(payload.object)) {
       await update('followers.tsv', `unfollowed by ${sender.id}`, (old) => {
         return old.split('\n').filter((i) => i.split('\t')[1] !== sender.id).join('\n')
       })
@@ -72,15 +82,17 @@ const handlePayload = async (payload, sender) => {
     case 'Create': case 'Update':
       console.log(payload.type, payload.object.id)
       break
-    case 'Accept': case 'Reject':
+    case 'Accept':
+      if (isFollowMe(payload.object)) {
+        await sendMessage(`Follow Accepted (${payload.actor})`)
+        return
+      }
+    case 'Reject':
     default:
       console.log(payload)
   }
 
-  try {
-    await sendMessage(formatJSON(payload))
-  } catch (err) {
-  }
+  await sendMessage(formatJSON(payload))
 }
 
 export const handler = async (evt, ctx) => {

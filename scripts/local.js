@@ -13,8 +13,9 @@ export const send = async (to, msg) => {
 }
 
 export const gh = github(process.env.GITHUB_REPO, `Bearer ${process.env.GITHUB_TOKEN}`)
+const author = { name: 'ap-sh', email: 'ap@randna.me' }
 
-export const updateFile = async (path, updater, message) => {
+export const updateFile = async (path, message, updater) => {
   if (!message) { message = `update ${path}` }
   const p = `contents/${path}`
   const ori = await gh(p)
@@ -23,6 +24,7 @@ export const updateFile = async (path, updater, message) => {
   const { commit } = await gh(p, 'PUT', JSON.stringify({
     message,
     content,
+    author,
     sha: ori.sha,
   }))
   return commit
