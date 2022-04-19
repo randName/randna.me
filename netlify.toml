@@ -42,26 +42,6 @@
 
 # static endpoints
 [[headers]]
-  for = "/ap-static/*"
-  [headers.values]
-    Content-Type = "application/activity+json"
-
-[[headers]]
   for = "/i"
-  [headers.values]
-    Content-Type = "application/activity+json"
-
-# activity ids (commit hashes)
-[[redirects]]
-  from = "/a/*"
-  to = "https://github.com/randName/activitypub-log/commit/:splat"
-
-# objects ids
-[[redirects]]
-  from = "/o/*"
-  to = "https://raw.githubusercontent.com/randName/activitypub-log/blob/omo/objects/:splat"
-
-[[headers]]
-  for = "/o/*"
   [headers.values]
     Content-Type = "application/activity+json"
