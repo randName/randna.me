@@ -5,5 +5,9 @@ node_modules/
 package-lock.json
 
 .env
-private.pem
+dist/
+public/
+
+config.js
 public.pem
+private.pem

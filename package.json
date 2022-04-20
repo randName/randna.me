@@ -7,6 +7,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "generate": "node -r dotenv/config scripts/generate.js",
     "follow": "node -r dotenv/config scripts/follow.js",
     "dev": "netlify dev",
     "deploy": "netlify deploy",

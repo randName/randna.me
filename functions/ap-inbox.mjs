@@ -79,6 +79,8 @@ const handlePayload = async (payload, sender) => {
   }
 
   switch (payload.type) {
+    case 'Like':
+      break
     case 'Create': case 'Update':
       console.log(payload.type, payload.object.id)
       break
@@ -108,7 +110,9 @@ export const handler = async (evt, ctx) => {
 
     await handlePayload(payload, sender)
   } catch (err) {
-    console.warn('[err]', err.message, evt)
+    console.warn(evt.headers)
+    console.warn(evt.body)
+    console.warn(err.message)
     return { statusCode: 400, headers: cors, body: `${err.message}` }
   }
 

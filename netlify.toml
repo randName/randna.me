@@ -2,7 +2,8 @@
   directory = "functions/"
 
 [build]
-  publish = "public/"
+  publish = "dist/"
+  command = "rm -rf dist/ && cp -r public dist && npm run generate"
 
 # CORS
 [[headers]]
@@ -12,11 +13,6 @@
     Access-Control-Allow-Methods = "*"
     Access-Control-Allow-Headers = "Origin,Content-Type,Accept,Host,Date,Digest,Signature"
     Access-Control-Allow-Credentials = "true"
-
-# misc redirects
-[[redirects]]
-  from = "/1910"
-  to = "https://www.youtube.com/playlist?list=PLWzc8EoGPqaWr6NFeRG2Pa0TCV3szEupt"
 
 ###############
 # ActivityPub #
