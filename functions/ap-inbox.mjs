@@ -1,17 +1,10 @@
-import {
-  github,
-  telegram,
-  postMessage,
-  verifyHeaders,
-} from '../scripts/utils.js'
+import { createClient } from '@supabase/supabase-js'
+import { verifyRequest, sendRequest } from '../scripts/activitypub.js'
 
 const domain = process.env.URL
-const actor = process.env.ACTOR_URL || `${domain}/i`
+
+const actor = process.env.ACTOR_ID || `${domain}/i`
 const keyId = `${actor}#main-key`
-
-const gh = github(process.env.LOG_REPO, `Bearer ${process.env.GITHUB_TOKEN}`)
-const author = { name: 'ap-bot', email: 'ap@randna.me' }
-
 const privateKey = `-----BEGIN RSA PRIVATE KEY-----
 ${process.env.PRIVATE_KEY}
 -----END RSA PRIVATE KEY-----`
@@ -22,79 +15,30 @@ const cors = {
   'Access-Control-Allow-Headers': 'Content-Type,Host,Date,Digest,Signature',
 }
 
-const tri = '```'
-const chat_id = process.env.CHAT_ID
-const tg = telegram(process.env.TELEGRAM_TOKEN)
+const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
-const formatJSON = (data) => `${tri}json
-${JSON.stringify(data, null, 1)}
-${tri}`
-
-const sendMessage = async (text) => {
-  if (!chat_id || !tg) return
-  try {
-    await tg('sendMessage', {
-      text,
-      chat_id,
-      parse_mode: 'MarkdownV2',
-      disable_notification: true,
-    })
-  } catch (err) {
-    console.warn(`[tg] failed: ${err.message}`)
-  }
-}
-
-const send = (to, msg) => postMessage(to, { actor, ...msg }, privateKey, keyId)
+const send = (to, msg) => sendRequest(to, { actor, ...msg }, privateKey, keyId)
 
 const isFollowMe = (obj) => obj.type === 'Follow' && obj.object === actor
 
-const update = async (path, message, updater) => {
-  if (!gh) return
-  const p = `contents/${path}`
-  const { sha, content: old } = await gh(p)
-  const updated = updater(Buffer.from(old, 'base64').toString())
-  const content = Buffer.from(updated).toString('base64')
-  return await gh(p, 'PUT', JSON.stringify({ sha, message, content, author }))
-}
-
 const handlePayload = async (payload, sender) => {
   if (isFollowMe(payload)) {
-    const message = `Accept Follow from ${sender.id}`
-    const { commit } = await update('followers.tsv', message, (old) => {
-      const lines = old.split('\n')
-      lines.splice(-1, 0, `${Date.now()}\t${sender.id}`)
-      return lines.join('\n')
-    })
-    const id = `${domain}/a/${commit.sha}`
+    const { data, error } = await db.from('followers').insert([{ id: payload.actor }])
+    if (error) return
+    const id = `${domain}/a/${data[0].uuid}`
     const resp = await send(sender.inbox, { id, type: 'Accept', object: payload })
     console.log('Accept: ', id, resp)
     return
   } else if (payload.type === 'Undo') {
     if (isFollowMe(payload.object)) {
-      await update('followers.tsv', `unfollowed by ${sender.id}`, (old) => {
-        return old.split('\n').filter((i) => i.split('\t')[1] !== sender.id).join('\n')
-      })
+      await db.from('followers').delete().eq('id', payload.actor)
+      console.log('unfollowed', sender.id, payload)
       return
     }
   }
 
-  switch (payload.type) {
-    case 'Like':
-      break
-    case 'Create': case 'Update':
-      console.log(payload.type, payload.object.id)
-      break
-    case 'Accept':
-      if (isFollowMe(payload.object)) {
-        await sendMessage(`Follow Accepted (${payload.actor})`)
-        return
-      }
-    case 'Reject':
-    default:
-      console.log(payload)
-  }
-
-  await sendMessage(formatJSON(payload))
+  const { data, error } = await db.from('inbox').insert([{ sender: sender.id, payload }])
+  console.log(data, error)
 }
 
 export const handler = async (evt, ctx) => {
@@ -102,16 +46,18 @@ export const handler = async (evt, ctx) => {
   if (evt.httpMethod !== 'POST') return { statusCode: 405, headers: cors, body: 'not allowed' }
 
   try {
-    const sender = await verifyHeaders(evt.headers, evt.body, evt.path)
-    if (!sender) throw new Error('signature verification failed')
+    const target = `${evt.httpMethod} ${evt.path}`.toLowerCase()
+    const sender = await verifyRequest(evt.headers, evt.body, target)
 
     const { '@context': _, ...payload } = JSON.parse(evt.body)
-    if (sender.id !== payload.actor) throw new Error('actor mismatch')
+    if (sender.id !== payload.actor) {
+      console.warn(`actor mismatch: ${sender.id} != ${payload.actor}`)
+    }
 
     await handlePayload(payload, sender)
   } catch (err) {
-    console.warn(evt.headers)
-    console.warn(evt.body)
+    console.log(evt.body)
+    console.log(evt.headers)
     console.warn(err.message)
     return { statusCode: 400, headers: cors, body: `${err.message}` }
   }

@@ -13,8 +13,10 @@
     "dev": "netlify dev",
     "ntl": "netlify"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^1.35.2"
+  },
   "devDependencies": {
-    "dotenv": "^16.0.0",
     "netlify-cli": "^9.16.6"
   }
 }

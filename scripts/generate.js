@@ -1,6 +1,5 @@
 import { mkdir, readFile, writeFile, appendFile } from 'fs/promises'
-
-const activityJSON = 'application/activity+json'
+import { activityJSON } from './activitypub.js'
 
 const publishDir = 'dist'
 
@@ -8,21 +7,21 @@ const redirects = (wfd) => `
 # WebFinger
 /.well-known/webfinger resource=:rs /${wfd}/:rs 200`
 
-const headers = (profilePath) => `
+const headers = (path) => `
 # WebFinger
 /.well-known/webfinger
   Content-Type: application/jrd+json
 
 # ActivityPub Actor
-/${profilePath}
+/${path}
   Content-Type: ${activityJSON}`
 
 import('../config.js').then(async ({ default: config }) => {
   const {
     url,
     username,
-    profilePath,
     profile = {},
+    profilePath = 'i',
     linkRelations = {},
     publicKeyId = 'main-key',
     publicKeyPath = './public.pem',
@@ -31,7 +30,6 @@ import('../config.js').then(async ({ default: config }) => {
 
   if (!url) throw new Error('url not set')
   if (!username) throw new Error('username not set')
-  if (!profilePath) throw new Error('profilePath not set')
 
   const actor = {
     '@context': [

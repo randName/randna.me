@@ -1,5 +1,7 @@
 import { readFile } from 'fs/promises'
-import { github, postMessage } from './utils.js'
+import '../node_modules/netlify-cli/node_modules/dotenv/config.js'
+import { createClient } from '@supabase/supabase-js'
+import { sendRequest } from './activitypub.js'
 
 let privateKey = null
 const actor = process.env.ACTOR_ID
@@ -9,23 +11,7 @@ export const send = async (to, msg) => {
   if (!privateKey) {
     privateKey = await readFile('./private.pem', 'utf8')
   }
-  return await postMessage(to, { actor, ...msg }, privateKey, keyId)
+  return await sendRequest(to, { actor, ...msg }, privateKey, keyId)
 }
 
-export const gh = github(process.env.GITHUB_REPO, `Bearer ${process.env.GITHUB_TOKEN}`)
-const author = { name: 'ap-sh', email: 'ap@randna.me' }
-
-export const updateFile = async (path, message, updater) => {
-  if (!message) { message = `update ${path}` }
-  const p = `contents/${path}`
-  const ori = await gh(p)
-  const updated = updater(Buffer.from(ori.content, 'base64').toString())
-  const content = Buffer.from(updated).toString('base64')
-  const { commit } = await gh(p, 'PUT', JSON.stringify({
-    message,
-    content,
-    author,
-    sha: ori.sha,
-  }))
-  return commit
-}
+export const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
