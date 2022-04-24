@@ -1,30 +1,37 @@
 import { sign, createVerify, createHash } from 'crypto'
-import { fetch } from './fetch.js'
 
 const b64 = 'base64'
 const ctype = 'content-type'
 const requestTarget = '(request-target)'
-const signHeaders = [requestTarget, 'host', 'date', 'digest', ctype]
-const signatureHeader = signHeaders.join(' ')
 
-const getSigHeader = (keyId, signature) => Object.entries({
-  algorithm: 'rsa-sha256',
-  keyId,
-  headers: signatureHeader,
-  signature,
-}).map(([k, v]) => `${k}="${v}"`).join(',')
+const hashDigest = (d, algo = 'SHA-256') => {
+  if (algo === 'SHA-256') return createHash('sha256').update(d).digest(b64)
+  return null
+}
 
-const urlParams = (u, m) => ({ [requestTarget]: `${m} ${u.pathname}`, host: u.host })
+const signHeaders = (url, opts, keyId, key) => {
+  const toSign = [
+    requestTarget, 'host', 'date',
+    ...(opts.method === 'POST' ? ['digest', ctype] : []),
+  ]
+  const head = {
+    [requestTarget]: `${opts.method.toLowerCase()} ${url.pathname}`,
+    host: url.host,
+    ...opts.headers,
+  }
+  const s = toSign.map((h) => `${h}: ${head[h]}`).join('\n')
+  return Object.entries({
+    algorithm: 'rsa-sha256',
+    keyId,
+    headers: toSign.join(' '),
+    signature: sign('sha256', s, key).toString(b64),
+  }).map(([k, v]) => `${k}="${v}"`).join(',')
+}
 
 export const activityJSON = 'application/activity+json'
-
 export const activitystreams = { '@context': 'https://www.w3.org/ns/activitystreams' }
 
-export const getActivity = (url) => fetch(url, {
-  headers: { accept: `application/json,${activityJSON}` },
-}).then((r) => r.json())
-
-export const verifyRequest = async (headers, body, target) => {
+export const verifier = (getKey) => async (headers, body, target) => {
   if (!headers.signature) throw new Error('missing signature header')
 
   if (headers.date) {
@@ -44,12 +51,16 @@ export const verifyRequest = async (headers, body, target) => {
 
   if (headers.digest) {
     const [ha, ...hd] = headers.digest.split('=')
-    const hasher = (ha === 'SHA-256') ? createHash('sha256') : null
-    const result = hasher?.update(body).digest(b64)
-    if (hd.join('=') !== result) throw new Error(`invalid digest: ${headers.digest}`)
+    if (hd.join('=') !== hashDigest(body, ha)) {
+      throw new Error(`invalid digest: ${headers.digest}`)
+    }
   }
 
-  const { publicKey: pk, ...act } = await getActivity(sig.keyId)
+  const { publicKey: pk, ...act } = await getKey(sig.keyId)
+
+  if (!pk || !pk.publicKeyPem) {
+    throw new Error(`failed to get key: ${sig.keyId}`)
+  }
 
   if (pk.id && pk.id !== sig.keyId) {
     throw new Error(`invalid keyId: ${sig.keyId} != ${pk.id}`)
@@ -65,27 +76,20 @@ export const verifyRequest = async (headers, body, target) => {
   throw new Error('verification failed')
 }
 
-export const sendRequest = async (to, message, key, keyId, method = 'POST') => {
-  const upar = urlParams(new URL(to), method.toLowerCase())
-  const body = JSON.stringify({ ...activitystreams, ...message })
-  const digest = `SHA-256=${createHash('sha256').update(body).digest(b64)}`
-  const head = {
-    [ctype]: activityJSON,
-    date: (new Date()).toUTCString(),
-    digest,
+export const createRequest = (to, key, message) => {
+  const opts = { method: 'POST', headers: {} }
+
+  if (message) {
+    opts.body = JSON.stringify({ ...activitystreams, ...message })
+    opts.headers[ctype] = activityJSON
+    opts.headers.digest = `SHA-256=${hashDigest(opts.body)}`
+  } else {
+    opts.method = 'GET'
+    opts.headers.accept = activityJSON
   }
 
-  const s = signHeaders.map((h) => `${h}: ${head[h] || upar[h]}`).join('\n')
-  const signature = getSigHeader(keyId, sign('sha256', s, key).toString(b64))
-  const resp = await fetch(to, {
-    method,
-    body,
-    headers: { ...head, signature },
-  })
+  opts.headers.date = (new Date()).toUTCString()
+  opts.headers.signature = signHeaders(new URL(to), opts, key.id, key.pem)
 
-  try {
-    return await resp.json()
-  } catch (err) {
-    return await resp.text()
-  }
+  return opts
 }

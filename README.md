@@ -2,8 +2,6 @@
 
 > [ActivityPub](https://activitypub.rocks/) implementation using [Netlify Functions](https://functions.netlify.com/)
 
-- supports [WebFinger](https://webfinger.net) using redirects
-
 ## Quick start
 
 1. Generate an RSA keypair
@@ -17,6 +15,11 @@ openssl rsa -in private.pem -outform PEM -pubout public.pem
 3. Place your site files at `/public`
 4. Generate a build with `npm run build`
 5. Deploy with `npm run deploy`
+
+## Features
+
+- supports [WebFinger](https://webfinger.net) using redirects
+- save activity to [Supabase](https://app.supabase.io)
 
 ## Further reading
 

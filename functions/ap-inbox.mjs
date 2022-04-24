@@ -1,13 +1,17 @@
+import { fetch } from 'cross-fetch'
 import { createClient } from '@supabase/supabase-js'
-import { verifyRequest, sendRequest } from '../scripts/activitypub.js'
+import { verifier, createRequest, activityJSON } from '../scripts/activitypub.js'
 
 const domain = process.env.URL
+const testId = `${domain}/test-id`
 
 const actor = process.env.ACTOR_ID || `${domain}/i`
-const keyId = `${actor}#main-key`
-const privateKey = `-----BEGIN RSA PRIVATE KEY-----
+const key = {
+  id: `${actor}#main-key`,
+  pem: `-----BEGIN RSA PRIVATE KEY-----
 ${process.env.PRIVATE_KEY}
 -----END RSA PRIVATE KEY-----`
+}
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -17,11 +21,20 @@ const cors = {
 
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
-const send = (to, msg) => sendRequest(to, { actor, ...msg }, privateKey, keyId)
+const verifyRequest = verifier((url) => fetch(url, {
+  headers: { accept: `application/json,${activityJSON}` },
+}).then((r) => r.json()))
+
+const send = (to, msg) => fetch(to, createRequest(to, key, { actor, ...msg })).then((r) => r.text())
 
 const isFollowMe = (obj) => obj.type === 'Follow' && obj.object === actor
 
 const handlePayload = async (payload, sender) => {
+  if (payload.id === testId) {
+    console.log('test', sender.id, payload)
+    return
+  }
+
   if (isFollowMe(payload)) {
     const { data, error } = await db.from('followers').insert([{ id: payload.actor }])
     if (error) return
@@ -31,8 +44,8 @@ const handlePayload = async (payload, sender) => {
     return
   } else if (payload.type === 'Undo') {
     if (isFollowMe(payload.object)) {
-      await db.from('followers').delete().eq('id', payload.actor)
       console.log('unfollowed', sender.id, payload)
+      await db.from('followers').delete().eq('id', payload.actor)
       return
     }
   }

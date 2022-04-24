@@ -4,10 +4,9 @@
   "author": "randName",
   "license": "MIT",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "follow": "node -r dotenv/config scripts/follow.js",
     "deploy": "netlify deploy",
     "build": "netlify build",
     "dev": "netlify dev",
@@ -17,6 +16,6 @@
     "@supabase/supabase-js": "^1.35.2"
   },
   "devDependencies": {
-    "netlify-cli": "^9.16.6"
+    "netlify-cli": "^10.0.0"
   }
 }
