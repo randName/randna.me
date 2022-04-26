@@ -2,12 +2,24 @@ import { mkdir, readFile, writeFile, appendFile } from 'fs/promises'
 import { activityJSON } from './activitypub.js'
 
 const publishDir = 'dist'
+const nodeinfoFile = 'nodeinfo'
+const nodeinfoWkFile = 'wk-nodeinfo'
 
 const redirects = (wfd) => `
+# nodeinfo
+/.well-known/nodeinfo /${nodeinfoWkFile} 200
+
 # WebFinger
 /.well-known/webfinger resource=:rs /${wfd}/:rs 200`
 
 const headers = (path) => `
+# nodeinfo
+/.well-known/nodeinfo
+  Content-Type: application/jrd+json
+
+/${nodeinfoFile}
+  Content-Type: application/json
+
 # WebFinger
 /.well-known/webfinger
   Content-Type: application/jrd+json
@@ -32,10 +44,6 @@ import('../config.js').then(async ({ default: config }) => {
   if (!username) throw new Error('username not set')
 
   const actor = {
-    '@context': [
-      'https://www.w3.org/ns/activitystreams',
-      'https://w3id.org/security/v1',
-    ],
     id: `${url}/${profilePath}`,
     type: 'Person',
     url,
@@ -61,12 +69,30 @@ import('../config.js').then(async ({ default: config }) => {
   }))
 
   await writeFile(`${publishDir}/${profilePath}`, JSON.stringify({
+    '@context': [
+      'https://www.w3.org/ns/activitystreams',
+      'https://w3id.org/security/v1',
+    ],
     ...actor,
     publicKey: {
       id: `${actor.id}#${publicKeyId}`,
       owner: actor.id,
       publicKeyPem: await readFile(publicKeyPath, 'utf8'),
     },
+  }))
+
+  await appendFile(`${publishDir}/${nodeinfoWkFile}`, JSON.stringify({
+    links: [{
+      rel: 'http://nodeinfo.diaspora.software/ns/schema/2.1',
+      href: `${url}/${nodeinfoFile}`,
+    }],
+  }))
+
+  await appendFile(`${publishDir}/${nodeinfoFile}`, JSON.stringify({
+    version: '2.1',
+    openRegistrations: false,
+    protocols: ['activitypub'],
+    usage: { users: { total: 1 } },
   }))
 
   await appendFile(`${publishDir}/_headers`, headers(profilePath))
