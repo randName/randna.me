@@ -1,4 +1,4 @@
-import { sign, createVerify, createHash } from 'crypto'
+import { createSign, createVerify, createHash } from 'crypto'
 
 const b64 = 'base64'
 const ctype = 'content-type'
@@ -19,12 +19,14 @@ const signHeaders = (url, opts, keyId, key) => {
     host: url.host,
     ...opts.headers,
   }
-  const s = toSign.map((h) => `${h}: ${head[h]}`).join('\n')
+  const signer = createSign('sha256')
+  signer.update(toSign.map((h) => `${h}: ${head[h]}`).join('\n'))
+  signer.end()
   return Object.entries({
     algorithm: 'rsa-sha256',
     keyId,
     headers: toSign.join(' '),
-    signature: sign('sha256', s, key).toString(b64),
+    signature: signer.sign(key).toString(b64),
   }).map(([k, v]) => `${k}="${v}"`).join(',')
 }
 

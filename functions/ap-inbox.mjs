@@ -21,9 +21,7 @@ const cors = {
 
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
-const verifyRequest = verifier((url) => fetch(url, {
-  headers: { accept: `application/json,${activityJSON}` },
-}).then((r) => r.json()))
+const verifyRequest = verifier((url) => fetch(url, createRequest(url, key)).then((r) => r.json()))
 
 const send = (to, msg) => fetch(to, createRequest(to, key, { actor, ...msg })).then((r) => r.text())
 
