@@ -1,23 +1,15 @@
-import { readFile } from 'fs/promises'
+import fetch from 'node-fetch'
+import * as HS from '@musakui/fedi/hs'
 import '../node_modules/netlify-cli/node_modules/dotenv/config.js'
-import { createClient } from '@supabase/supabase-js'
-import { createRequest } from './activitypub.js'
 
-let privateKey = null
-const actor = process.env.ACTOR_ID
-const keyId = `${actor}#main-key`
+HS.useFetch(fetch)
+HS.useKey(process.env.AP_KEY_ID, `-----BEGIN RSA PRIVATE KEY-----
+${process.env.AP_PRIVATE_KEY}
+-----END RSA PRIVATE KEY-----`)
 
-const key = async () => {
-  if (!privateKey) {
-    privateKey = await readFile('./private.pem', 'utf8')
-  }
-  return { id: keyId, pem: privateKey }
-}
-
-export const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
-
-export const activity = async (url, msg) => {
-  const data = msg ? { actor, ...msg } : undefined
-  const resp = await fetch(url, createRequest(url, await key(), data))
-  return await resp.text()
-}
+const resp = await HS.sendRequest({
+	url: `https://${process.argv[2]}/ap/inbox`,
+	body: JSON.stringify({
+		id: 'test-id',
+	}),
+})

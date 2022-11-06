@@ -19,7 +19,6 @@ openssl rsa -in private.pem -outform PEM -pubout public.pem
 ## Features
 
 - supports [WebFinger](https://webfinger.net) using redirects
-- save activity to [Supabase](https://app.supabase.io)
 
 ## Further reading
 

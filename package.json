@@ -1,21 +1,23 @@
 {
-  "name": "activitypub-serverless",
-  "description": "ActivityPub implementation using Netlify functions",
-  "author": "randName",
-  "license": "MIT",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "deploy": "netlify deploy",
-    "build": "netlify build",
-    "dev": "netlify dev",
-    "ntl": "netlify"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^1.35.2"
-  },
-  "devDependencies": {
-    "netlify-cli": "^10.0.0"
-  }
+	"name": "activitypub-serverless",
+	"description": "ActivityPub implementation using Netlify functions",
+	"author": "randName",
+	"license": "MIT",
+	"repository": "github:randName/activitypub-serverless",
+	"version": "0.2.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"deploy": "netlify deploy",
+		"build": "netlify build",
+		"dev": "netlify dev"
+	},
+	"dependencies": {
+		"@musakui/fedi": "^0.0.3",
+		"firebase-admin": "^11.2.0",
+		"node-fetch": "^3.2.10"
+	},
+	"devDependencies": {
+		"netlify-cli": "^12.1.0"
+	}
 }

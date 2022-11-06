@@ -2,9 +2,12 @@
   directory = "functions/"
   node_bundler = "esbuild"
 
+[dev]
+  autoLaunch = false
+
 [build]
   publish = "dist/"
-  command = "rm -rf dist/ && cp -r public dist && node scripts/generate.js"
+  command = "rm -rf dist/ && cp -r public dist && node scripts/build.js"
 
 # CORS
 [[headers]]

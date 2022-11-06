@@ -6,7 +6,6 @@ package-lock.json
 
 .env
 dist/
-public/
 
 config.js
 public.pem
