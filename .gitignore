@@ -6,7 +6,5 @@ package-lock.json
 
 .env
 dist/
+dist-fn/
 
-config.js
-public.pem
-private.pem

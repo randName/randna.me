@@ -1,5 +1,4 @@
 [functions]
-  directory = "functions/"
   node_bundler = "esbuild"
 
 [dev]
@@ -7,7 +6,11 @@
 
 [build]
   publish = "dist/"
-  command = "rm -rf dist/ && cp -r public dist && node scripts/build.js"
+  command = "npm run build && npm run build:fn"
+
+[context.production.environment]
+  AWS_LAMBDA_JS_RUNTIME = "nodejs18.x"
+  NODE_NO_WARNINGS = "1"
 
 # CORS
 [[headers]]
@@ -17,7 +20,17 @@
     Access-Control-Allow-Methods = "*"
     Access-Control-Allow-Headers = "DNT,User-Agent,Content-Type,Cache-Control,Range"
 
-# serverless endpoints
+[[headers]]
+  for = "/.well-known/webfinger"
+  [headers.values]
+    Content-Type = "application/jrd+json"
+
+[[redirects]]
+  from = "/.well-known/webfinger"
+	to = "/.well-known/webfinger/:rs"
+	status = 200
+	query = { resource = ":rs" }
+
 [[redirects]]
   from = "/ap/*"
   to = "/.netlify/functions/ap-:splat"
