@@ -23,7 +23,7 @@
 [[headers]]
   for = "/.well-known/webfinger"
   [headers.values]
-    Content-Type = "application/jrd+json"
+    content-type = "application/jrd+json"
 
 [[redirects]]
   from = "/.well-known/webfinger"

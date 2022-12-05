@@ -14,7 +14,7 @@ const randName = {
 	published: '2022-04-20T02:04:02.202Z',
 	url: domain,
 	inbox: '/ap/inbox',
-	outbox: 'https://social.randna.me/o/randName',
+	outbox: 'https://social.randna.me/randName/outbox',
 	icon: {
 		type: 'Image',
 		mediaType: 'image/png',
@@ -34,9 +34,10 @@ const randName = {
 }
 
 const mahjong = {
-	summary: 'mahjong stuff',
+	name: '🀄',
+	summary: '<a href="https://mahjong-handle.update.sh">Mahjong Handle</a>',
 	inbox: '/ap/inbox',
-	outbox: 'https://social.randna.me/o/🀄️',
+	outbox: 'https://social.randna.me/mahjong/outbox',
 	publicKey,
 }
 
@@ -46,7 +47,7 @@ export default defineConfig({
 			domain,
 			profiles: {
 				randName,
-				'🀄️': mahjong,
+				mahjong,
 			},
 			processHeaders: (h) => ({
 				_headers: Object.entries(h).map(([fn, hs]) => `/${fn}\n${
